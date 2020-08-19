@@ -15,37 +15,39 @@ import json
 # Find out the channel ID in Discord:
 # 'Appearance' -> 'Developer Mode' -> Toggle
 # Then, right-click the channel and select 'Copy ID'
-channel_id = '012345678901234556'
+channel_id = '730646763584880662'
 # Get your token like this:
 # https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token
-token = 'XXXXXXXXXXXXXXXXXXXXXXXX.YYYYYYYYYYYYYYYYYYYYYYYYYYYyyyyyyy'
-
+token = 'NzQzNTM4MDMxNzg4NTU2Mzg4.XzWHwQ.eOp2IBewhtjjiM6aHIJ66s39Lh0'
 
 client = discord.Client()
+
 
 @client.event
 async def on_ready():
     print('Logged into Discord as %s (%s)' % (client.user.name, client.user.id))
 
+
 async def receive_bitmex_data():
     await client.wait_until_ready()
     async with websockets.connect("wss://www.bitmex.com/realtime?subscribe=liquidation:XBTUSD") as ws:
         channel = discord.Object(id=channel_id)
-        await client.send_message(channel, "hello, world!")
+        await channel.send_message(channel, "hello, world!")
         while not client.is_closed:
             try:
-                data = await asyncio.wait_for(ws.recv(), timeout=20)
+                data = await asyncio.wait_for(ws.recv(), timeout=5)
             except asyncio.TimeoutError:
                 try:
                     pong_waiter = await ws.ping()
-                    await asyncio.wait_for(pong_waiter, timeout=10)
+                    await asyncio.wait_for(pong_waiter, timeout=5)
                 except asyncio.TimeoutError:
-                    break
+                    breakpytho
             else:
                 print('.', end='', flush=True)
                 await handle_data(data, channel)
         print('Client closed')
         ws.close()
+
 
 async def handle_data(data, channel):
     """ Liquidation messages look like this:
@@ -64,16 +66,18 @@ async def handle_data(data, channel):
     """
     x = json.loads(data)
     if 'table' in x and x['table'] == 'liquidation':
-        #print('########################### LIQUIDATION ###########################')
-        #print(x)
-        #await client.send_message(channel, x)
+        # print('########################### LIQUIDATION ###########################')
+        # print(x)
+        # await client.send_message(channel, x)
         # XXX: Clean this mess up
         if 'action' in x and x['action'] == 'insert':
             if 'data' in x and isinstance(x['data'], list):
                 side = 'short' if x['data'][0]['side'] == 'Buy' else 'long'
-                liq_str = 'Liquidating ' + x['data'][0]['symbol'] + ' ' + side + ': ' + x['data'][0]['side'] + ' ' + str(x['data'][0]['leavesQty']) + ' at ' + str(x['data'][0]['price'])
+                liq_str = 'Liquidating ' + x['data'][0]['symbol'] + ' ' + side + ': ' + x['data'][0][
+                    'side'] + ' ' + str(x['data'][0]['leavesQty']) + ' at ' + str(x['data'][0]['price'])
                 print(liq_str)
                 await client.send_message(channel, liq_str)
+
 
 client.loop.create_task(receive_bitmex_data())
 client.run(token)
